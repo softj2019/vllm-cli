@@ -80,12 +80,106 @@ def _save_history():
         pass
 
 
+# ── 도움말 ────────────────────────────────────
+_HELP: dict = {
+    "": """\
+┌─ vLLM CLI v2 — 명령 목록 ──────────────────────────────────┐
+│                                                             │
+│  /help [항목]     상세 도움말   예) /help file              │
+│                                                             │
+│  /switch          OCR ↔ CLI LLM 모드 전환                  │
+│  /file            파일 검색·읽기·쓰기·삭제                  │
+│  /server          vLLM 서버 제어 (시작·중지·로그)           │
+│  /sys             시스템 정보 (CPU·RAM·GPU·네트워크)        │
+│  /syscheck (/sc)  환경 조사 + 모델 추천                     │
+│  /model           모델 다운로드                             │
+│  /rescan          서버 재탐색 + 재선택                      │
+│  /clear           대화 이력 초기화                          │
+│  /notool          Tool Calling ON/OFF 토글                  │
+│  /q               종료   (Ctrl+D 도 종료)                   │
+│                                                             │
+│  AI 자연어: tools=ON 일 때 파일·시스템 도구 자율 호출       │
+│  상세 가이드: GUIDE.md                                      │
+└─────────────────────────────────────────────────────────────┘""",
+
+    "switch": """\
+/switch — OCR ↔ CLI LLM 모드 전환
+  /switch status    현재 모드·컨테이너 상태 확인
+  /switch cli       OCR(8100) 중지 → CLI LLM(8200) 기동 + 자동 재연결
+  /switch ocr       CLI LLM 중지 → OCR(8100) 재시작 + 자동 재연결
+
+  설정: switch.json (cli.model_path 를 실제 모델 경로로 수정 필요)
+  제약: GPU VRAM 부족 시 동시 운영 불가 → 교대 사용""",
+
+    "file": """\
+/file — 파일 조작 (AI 없이 직접 실행)
+  /file search <패턴> [경로]    파일명 패턴 검색   예) /file search *.log /var
+  /file grep <키워드> [경로]    내용 키워드 검색   예) /file grep ERROR /var/log
+  /file read <경로> [줄수]      파일 읽기          예) /file read /etc/hosts 50
+  /file write <경로> <내용>     파일 쓰기 (덮어쓰기)
+  /file append <경로> <내용>    파일 끝에 추가
+  /file info <경로>             파일·디렉토리 상세 정보
+  /file delete <경로>           파일 삭제 (확인 프롬프트)""",
+
+    "server": """\
+/server — vLLM 서버 제어
+  /server status                     서버 상태·PID·모델 확인
+  /server start [모델] [--port N]    서버 시작 (Docker 자동 탐색)
+  /server stop                       서버 중지 (SIGTERM)
+  /server restart [모델] [--port N]  서버 재시작
+  /server logs [N]                   로그 마지막 N줄 (기본 50)
+  /server models                     모델 목록
+  /server tool-info                  Tool Calling 지원 여부 진단
+  /server find-vllm                  vLLM 설치 경로 탐색 (Docker 포함)
+
+  예) /server start /home/archiv/dev/model/Qwen2.5-7B-Instruct --port 8200""",
+
+    "sys": """\
+/sys — 시스템 정보 조회
+  /sys              전체 시스템 정보 (CPU·RAM·디스크·OS·업타임)
+  /sys gpu          nvidia-smi 출력
+  /sys disk         df -h 출력
+  /sys mem          free -h 출력
+  /sys cpu          lscpu 요약
+  /sys net          네트워크 인터페이스·포트·라우팅
+  /sys ps [키워드]  프로세스 목록
+  /sys check        환경 조사 (syscheck.py 실행)
+  /syscheck (/sc)   환경 조사 + vLLM 모델 추천 전체 리포트""",
+
+    "model": """\
+/model — 모델 다운로드 관리
+  /model              인터랙티브 다운로드 메뉴
+  /model list         다운로드 가능한 모델 목록
+  /model check        설치 상태 확인
+  /model <모델ID>     특정 모델 직접 지정  예) /model Qwen/Qwen2.5-7B-Instruct
+
+  권장 CLI LLM:
+    Qwen2.5-7B-Instruct   (~8GB VRAM)  ← Tool Calling 최적
+    Qwen2.5-3B-Instruct   (~4GB VRAM)
+    Qwen2.5-1.5B-Instruct (~3GB VRAM)  ← 최소 사양""",
+}
+
+
+def _help(topic: str) -> str:
+    if topic in _HELP:
+        return _HELP[topic]
+    keys = [k for k in _HELP if k and k.startswith(topic)]
+    if keys:
+        return _HELP[keys[0]]
+    return f"알 수 없는 항목: {topic}\n사용 가능: " + ", ".join(k for k in _HELP if k)
+
+
 # ── 슬래시 명령 ───────────────────────────────
 def _slash(cmd: str, fm: FileManager, sm: ServerManager, sys_mgr: SystemManager):
     p = cmd.strip().split(None, 3)
     if not p or not p[0].startswith("/"):
         return None
     top = p[0].lower()
+
+    # ── /help — 도움말 ───────────────────────────
+    if top in ("/help", "/h", "/?"):
+        topic = p[1].lower() if len(p) > 1 else ""
+        return _help(topic)
 
     # ── /syscheck — 환경 조사 + 모델 추천 ────────
     if top in ("/syscheck", "/sc"):
