@@ -1,7 +1,7 @@
 """ServerManager — vLLM 프로세스 제어 + 모델 자동 감지"""
 import os, signal, subprocess, json, http.client, time
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from .config import HOST, PORT, API_MODELS, LOG_FILE
 from .model_detect import detect_parser, fetch_models
 from .logger import get_logger
@@ -118,20 +118,108 @@ class ServerManager:
                 res.append(f"PID {pid} → 오류")
         return "중지:\n" + "\n".join(f"  {r}" for r in res)
 
+    # ── vLLM 설치 확인 헬퍼 ──────────────────────
+    def _has_local_vllm(self) -> bool:
+        try:
+            r = subprocess.run(["python3", "-c", "import vllm"],
+                               capture_output=True, timeout=10)
+            return r.returncode == 0
+        except Exception:
+            return False
+
+    def _find_vllm_container(self) -> str:
+        """vLLM이 설치된 실행 중 Docker 컨테이너 이름 반환"""
+        try:
+            names = subprocess.check_output(
+                ["docker", "ps", "--format", "{{.Names}}"],
+                text=True, stderr=subprocess.DEVNULL, timeout=5
+            ).strip().splitlines()
+            for name in names:
+                r = subprocess.run(
+                    ["docker", "exec", name, "python3", "-c", "import vllm; print('ok')"],
+                    capture_output=True, text=True, timeout=10
+                )
+                if r.returncode == 0 and "ok" in r.stdout:
+                    log.info("_find_vllm_container: %s", name)
+                    return name
+        except Exception:
+            log.debug("_find_vllm_container 실패", exc_info=True)
+        return ""
+
+    def _start_in_docker(self, container: str, model_path: Optional[str],
+                         target_port: int, extra_args: str,
+                         auto_tool: bool, parser: str, desc: str) -> str:
+        if not model_path:
+            return (
+                "[오류] Docker 실행 시 모델 경로 필수\n"
+                "  사용법: /server start <모델경로> [--port N]\n"
+                "  예시:   /server start /home/archiv/dev/model/Qwen2.5-1.5B-Instruct --port 8200"
+            )
+        vllm_cmd = (
+            f"python3 -m vllm.entrypoints.openai.api_server"
+            f" --model {model_path}"
+            f" --host 0.0.0.0 --port {target_port}"
+        )
+        if auto_tool:
+            vllm_cmd += f" --enable-auto-tool-choice --tool-call-parser {parser}"
+        if extra_args:
+            vllm_cmd += f" {extra_args}"
+        try:
+            subprocess.Popen(
+                ["docker", "exec", "-d", container, "bash", "-c", vllm_cmd],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+            log.info("_start_in_docker: container=%s port=%d model=%s parser=%s",
+                     container, target_port, model_path, parser)
+            return (
+                f"Docker [{container}] 내부에서 vLLM 시작:\n"
+                f"  모델:  {model_path}\n"
+                f"  포트:  {target_port}  (--host 0.0.0.0)\n"
+                f"  계열:  {desc}  →  parser: {parser}\n"
+                f"  로그:  docker logs {container} -f\n\n"
+                f"  ※ 컨테이너가 --network host 또는 -p {target_port}:{target_port} 로\n"
+                f"    실행 중이어야 localhost:{target_port} 접근 가능.\n"
+                f"  → 30~60초 후 /rescan 으로 연결 확인"
+            )
+        except Exception:
+            log.error("_start_in_docker 실패", exc_info=True)
+            return f"[오류] docker exec {container} 실패"
+
     def start(self, model_path: str = None, extra_args: str = "",
               auto_tool: bool = True, port: int = None) -> str:
         pids = self._pids()
         if pids:
             return f"이미 실행중 (PID: {', '.join(map(str, pids))})"
         target_port = port or self.port
+        target = model_path or ""
+        parser, desc = detect_parser(target) if target else ("hermes", "Unknown (기본값)")
+
+        # vLLM 로컬 설치 확인 → 없으면 Docker 컨테이너 탐색
+        if not self._has_local_vllm():
+            log.warning("server start: 호스트에 vllm 없음 → Docker 컨테이너 탐색")
+            container = self._find_vllm_container()
+            if container:
+                return self._start_in_docker(container, model_path, target_port,
+                                             extra_args, auto_tool, parser, desc)
+            return (
+                "[오류] vLLM 미설치\n"
+                "  호스트: python3 -c 'import vllm' → ModuleNotFoundError\n"
+                "  Docker: vLLM 포함 컨테이너 없음\n"
+                "  해결①: pip install vllm (CUDA 환경 필요)\n"
+                "  해결②: Docker 컨테이너 내부에서 직접 실행\n"
+                f"    docker exec -d <컨테이너> bash -c \\\n"
+                f"      'python3 -m vllm.entrypoints.openai.api_server"
+                f" --model {model_path or '<모델경로>'}"
+                f" --host 0.0.0.0 --port {target_port}"
+                f" --enable-auto-tool-choice --tool-call-parser {parser}'"
+            )
+
         cmd = ["python3", "-m", "vllm.entrypoints.openai.api_server",
                "--host", self.host, "--port", str(target_port)]
         if model_path:
             cmd += ["--model", model_path]
         tool_note = ""
         if auto_tool:
-            target = model_path or ""
-            parser, desc = detect_parser(target) if target else ("hermes", "Unknown (기본값)")
             cmd += ["--enable-auto-tool-choice", "--tool-call-parser", parser]
             tool_note = f"\n  계열: {desc}  →  parser: {parser}"
             log.info("server start: model=%s parser=%s", target or "(미지정)", parser)
@@ -236,6 +324,28 @@ class ServerManager:
                     if l.startswith(("Name", "Version", "Location")):
                         lines.append(f"  {l}")
                 break
+
+        # ── 3b. Docker 컨테이너 내 vLLM 탐색 ─────
+        lines.append("[Docker 컨테이너 탐색]")
+        try:
+            containers = subprocess.check_output(
+                ["docker", "ps", "--format", "{{.Names}}\t{{.Image}}"],
+                text=True, stderr=subprocess.DEVNULL, timeout=5
+            ).strip().splitlines()
+            for cline in containers:
+                cname = cline.split("\t")[0]
+                r = subprocess.run(
+                    ["docker", "exec", cname, "python3", "-c",
+                     "import vllm, sys; print(sys.executable + ' | vllm ' + vllm.__version__)"],
+                    capture_output=True, text=True, timeout=10
+                )
+                if r.returncode == 0:
+                    lines.append(f"  ✓ [{cname}] {r.stdout.strip()}")
+                else:
+                    lines.append(f"  ✗ [{cname}] vllm 없음")
+        except Exception:
+            lines.append("  (docker 없음 또는 권한 필요)")
+        lines.append("")
 
         # ── 4. 권장 실행 명령 ─────────────────────
         lines.append("")
