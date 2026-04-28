@@ -1,0 +1,10 @@
+{
+  	"model" : "prove",
+  	"messages":[
+  		{
+  			"role":"user",
+  			"content":"현제 ubuntu 패쇄망 인터넷 연결 이 안되는 환경 에서 사용할 vLLLM OpenAI 호환 API 호출 및 응답 스트리밍 용 Python cli 를 작성해줘. 현제 리눅스 터미널은 curl 설치 없음, python3 실행가능, vllm host http://localhost:8100 , python3 기본 내장 모듈만 사용해야함 /home/archiv/ai/arch-ocr-engine 개발하면서 사용한 환경을 벤치마킹해도됨 이는 모두 로컬에 설치되어있음 , 텍스트 채팅 요청을 할거고 응답이 스트리밍 되어야함, 사용가능 모델을 선택 할 수 있어야함",
+		}
+	]
+}
+  	

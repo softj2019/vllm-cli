@@ -1,0 +1,25 @@
+# Python 캐시
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS 메타데이터
+._*
+.DS_Store
+
+# OMC 세션 상태 (임시)
+.omc/state/
+.omc/wiki/
+.omc/notepad.md
+.omc/logs/
+
+# 로그
+logs/*.log
+logs/*.log.*
+
+# 입력 이력
+.vllm_history
+
+# vendor wheels (용량 큼, 별도 배포)
+vendor/wheels/
+vendor/packages/

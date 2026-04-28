@@ -1,0 +1,8 @@
+{
+  "host": "localhost",
+  "port": 8100,
+  "model": "prov",
+  "known_servers": [
+    "localhost:8100"
+  ]
+}
