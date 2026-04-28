@@ -115,8 +115,8 @@ class ToolExecutor:
             "stop":        sm.stop,
             "tool_info":   sm.tool_support_info,
             "find_vllm":   sm.find_vllm,
-            "start":   lambda: sm.start(args.get("model_path"), args.get("extra_args", "")),
-            "restart": lambda: sm.restart(args.get("model_path"), args.get("extra_args", "")),
+            "start":   lambda: sm.start(args.get("model_path"), args.get("extra_args", ""), port=args.get("port")),
+            "restart": lambda: sm.restart(args.get("model_path"), args.get("extra_args", ""), port=args.get("port")),
             "logs":    lambda: sm.logs(args.get("log_lines", 50)),
         }.get(act)
         if fn is None:

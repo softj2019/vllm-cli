@@ -119,12 +119,13 @@ class ServerManager:
         return "중지:\n" + "\n".join(f"  {r}" for r in res)
 
     def start(self, model_path: str = None, extra_args: str = "",
-              auto_tool: bool = True) -> str:
+              auto_tool: bool = True, port: int = None) -> str:
         pids = self._pids()
         if pids:
             return f"이미 실행중 (PID: {', '.join(map(str, pids))})"
+        target_port = port or self.port
         cmd = ["python3", "-m", "vllm.entrypoints.openai.api_server",
-               "--host", self.host, "--port", str(self.port)]
+               "--host", self.host, "--port", str(target_port)]
         if model_path:
             cmd += ["--model", model_path]
         tool_note = ""
@@ -150,11 +151,11 @@ class ServerManager:
             return "[오류] 서버 시작 실패"
 
     def restart(self, model_path: str = None, extra_args: str = "",
-                auto_tool: bool = True) -> str:
+                auto_tool: bool = True, port: int = None) -> str:
         log.info("server restart 시작")
         r1 = self.stop()
         time.sleep(2)
-        r2 = self.start(model_path, extra_args, auto_tool)
+        r2 = self.start(model_path, extra_args, auto_tool, port)
         return f"{r1}\n\n{r2}"
 
     def find_vllm(self) -> str:

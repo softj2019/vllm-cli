@@ -160,9 +160,22 @@ def _slash(cmd: str, fm: FileManager, sm: ServerManager, sys_mgr: SystemManager)
             return "  status|start [model]|stop|restart|logs [N]|models|tool-info"
         sub = p[1].lower()
         if sub == "status":  return sm.status()
-        if sub == "start":   return sm.start(model_path=p[2] if len(p)>2 else None)
+        if sub in ("start", "restart"):
+            rest = p[2:]
+            port_override = None
+            if "--port" in rest:
+                pi = rest.index("--port")
+                if pi + 1 < len(rest):
+                    try:
+                        port_override = int(rest[pi + 1])
+                        rest = rest[:pi] + rest[pi + 2:]
+                    except ValueError:
+                        pass
+            model_path = rest[0] if rest else None
+            if sub == "start":
+                return sm.start(model_path=model_path, port=port_override)
+            return sm.restart(model_path=model_path, port=port_override)
         if sub == "stop":    return sm.stop()
-        if sub == "restart": return sm.restart(model_path=p[2] if len(p)>2 else None)
         if sub == "logs":
             return sm.logs(log_lines=int(p[2]) if len(p)>2 and p[2].isdigit() else 50)
         if sub in ("models", "list"):       return sm.list_models()

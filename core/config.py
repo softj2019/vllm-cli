@@ -138,6 +138,7 @@ TOOLS = [
     _fn("server_control", "vLLM 서버 제어", {
         "action":     ("string",  "status|start|stop|restart|logs|list_models"),
         "model_path": ("string",  "start 시 모델 경로"),
+        "port":       ("integer", "start/restart 시 포트 번호 (기본: 현재 연결 포트)"),
         "extra_args": ("string",  "start 추가 인자"),
         "log_lines":  ("integer", "logs 출력 줄수"),
     }, req=["action"]),
