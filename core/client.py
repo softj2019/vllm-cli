@@ -1,5 +1,5 @@
 """VLLMClient — HTTP 스트리밍 + Tool Calling 자동 감지/폴백 + ToolExecutor"""
-import json, http.client
+import json, http.client, os
 from typing import List, Dict, Any, Tuple, Optional
 from .config import HOST, PORT, API_CHAT, MODEL, SYSTEM, TOOLS, MAX_TOOL_RESULT
 from .files        import FileManager
@@ -136,7 +136,9 @@ class VLLMClient:
         self.use_tools   = use_tools
         self.tool_ok: Optional[bool] = None
         self.executor    = ToolExecutor(host, port)
-        self.messages: List[Dict] = [{"role": "system", "content": SYSTEM}]
+        cwd = os.getcwd()
+        system = SYSTEM + f"\n\nCurrent working directory: {cwd}\nWhen the user mentions a relative path or 'project path', resolve it against: {cwd}"
+        self.messages: List[Dict] = [{"role": "system", "content": system}]
         self._turn = 0   # 요청 순번 (로그 추적용)
         log.info("VLLMClient 초기화: %s:%d model=%s tools=%s", host, port, model, use_tools)
 
