@@ -49,6 +49,7 @@ except ImportError:
 from core.config    import HOST, PORT, MODEL
 from core.files     import FileManager
 from core.server    import ServerManager
+from core.switch    import SwitchManager
 from core.system    import SystemManager, shell_exec
 from core.client    import VLLMClient
 from core.discovery import select_server_model, _prompt_model, load_cfg
@@ -186,6 +187,22 @@ def _slash(cmd: str, fm: FileManager, sm: ServerManager, sys_mgr: SystemManager)
     return None
 
 
+# ── switch ────────────────────────────────────
+def _switch(target: str, client: VLLMClient, sm: ServerManager) -> None:
+    sw = SwitchManager()
+    msg, host, port, model = sw.switch(target)
+    print(msg)
+    if host and port and model:
+        client.host  = host
+        client.port  = port
+        client.model = model
+        client.tool_ok = None
+        client.messages = client.messages[:1]   # 시스템 프롬프트만 유지
+        sm.host, sm.port = host, port
+        log.info("switch 완료: %s:%d model=%s", host, port, model)
+        print(f"\n━━━ 모드 전환 완료: {host}:{port}  model={model} ━━━")
+
+
 # ── rescan ────────────────────────────────────
 def _rescan(client: VLLMClient, subnet=False) -> None:
     host, port, model = select_server_model(
@@ -255,7 +272,7 @@ def main():
     print(f"  로그: {log_path()}")
     if _READLINE_OK:
         print("  ↑↓ 이력 탐색 활성화")
-    print("/file /server /sys /syscheck /model /rescan /clear /notool /q  (Ctrl+D 종료)\n")
+    print("/file /server /sys /syscheck /model /switch /rescan /clear /notool /q  (Ctrl+D 종료)\n")
 
     while True:
         try:
@@ -288,6 +305,12 @@ def main():
         if ui.startswith("/rescan"):
             _rescan(client, subnet="--subnet" in ui)
             sm.host, sm.port = client.host, client.port
+            continue
+
+        if ui.startswith("/switch"):
+            parts  = ui.split()
+            target = parts[1].lower() if len(parts) > 1 else "status"
+            _switch(target, client, sm)
             continue
 
         if ui.startswith("/"):

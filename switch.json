@@ -1,0 +1,20 @@
+{
+  "current": "ocr",
+  "ocr": {
+    "container": "pro",
+    "host": "localhost",
+    "port": 8100,
+    "model": "prov"
+  },
+  "cli": {
+    "container": "cli-llm",
+    "host": "localhost",
+    "port": 8200,
+    "model": "Qwen2.5-7B-Instruct",
+    "model_path": "/home/archiv/dev/model/Qwen2.5-7B-Instruct",
+    "docker_image": "vllm/vllm-openai:latest",
+    "tool_parser": "hermes",
+    "gpu_device": "0",
+    "docker_network": "arch-net"
+  }
+}
