@@ -27,3 +27,7 @@ logs/*.log.*
 # vendor wheels (용량 큼, 별도 배포)
 vendor/wheels/
 vendor/packages/
+
+# local runtime artifacts
+.omc/sessions/
+logs/out.txt
