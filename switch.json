@@ -1,10 +1,12 @@
 {
-  "current": "ocr",
+  "current": "cli",
   "ocr": {
     "container": "pro",
     "host": "localhost",
     "port": 8100,
-    "model": "prov"
+    "model": "prov",
+    "compose_dir": "/home/archiv/ai",
+    "start_cmd": ""
   },
   "cli": {
     "container": "cli-llm",

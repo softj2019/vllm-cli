@@ -1,8 +1,10 @@
 {
-  "host": "localhost",
+  "host": "http://localhost",
   "port": 8100,
   "model": "prov",
   "known_servers": [
+    "http://localhost:8100",
+    "http://localhost:8000",
     "localhost:8100"
   ]
 }

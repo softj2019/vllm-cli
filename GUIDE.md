@@ -68,7 +68,12 @@ CLI 자동 재연결 → Tool Calling 활성화
 ```json
 {
   "current": "ocr",
-  "ocr": { "container": "pro", "port": 8100, "model": "prov" },
+  "ocr": {
+    "container": "pro",
+    "port": 8100,
+    "model": "prov",
+    "compose_dir": "/home/archiv/ai"
+  },
   "cli": {
     "container": "cli-llm",
     "port": 8200,
@@ -78,6 +83,9 @@ CLI 자동 재연결 → Tool Calling 활성화
   }
 }
 ```
+
+`compose_dir` 설정 시 `/switch ocr` 복귀 때 `docker compose down` 실행.  
+compose 파일 탐색 순서: `docker-compose.yml` → `docker-compose.yaml` → `docker-compose-online.yml`
 
 > GPU VRAM 여유가 2.9GB뿐이므로 두 모드 동시 운영 불가.
 > `/switch` 는 GPU 자원을 교대로 사용합니다.
@@ -99,12 +107,21 @@ CLI 내 `User >` 프롬프트에서 입력. AI를 거치지 않고 즉시 실행
 /help model        모델 다운로드 상세
 ```
 
+### /status — 통합 상태 확인
+
+```
+/status            모드·포트 응답·Docker 컨테이너·GPU VRAM·RAM·디스크·IP 요약
+/st                /status 단축키
+```
+
+단독 실행: `python3 status.py`
+
 ### /switch — 모드 전환
 
 ```
 /switch status     현재 모드·컨테이너 상태
 /switch cli        CLI LLM 모드 전환 (Tool Calling 활성)
-/switch ocr        OCR 모드 전환
+/switch ocr        OCR 모드 전환 (docker compose down 실행)
 ```
 
 ### /file — 파일 조작

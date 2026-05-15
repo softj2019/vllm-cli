@@ -88,6 +88,7 @@ _HELP: dict = {
 │  /help [항목]     상세 도움말   예) /help file              │
 │                                                             │
 │  /switch          OCR ↔ CLI LLM 모드 전환                  │
+│  /status          서버·컨테이너·GPU 상태 한눈에 확인        │
 │  /file            파일 검색·읽기·쓰기·삭제                  │
 │  /server          vLLM 서버 제어 (시작·중지·로그)           │
 │  /sys             시스템 정보 (CPU·RAM·GPU·네트워크)        │
@@ -157,6 +158,27 @@ _HELP: dict = {
     Qwen2.5-7B-Instruct   (~8GB VRAM)  ← Tool Calling 최적
     Qwen2.5-3B-Instruct   (~4GB VRAM)
     Qwen2.5-1.5B-Instruct (~3GB VRAM)  ← 최소 사양""",
+
+    "status": """\
+/status — 서버·컨테이너·GPU 통합 상태 확인
+  /status             현재 모드, 포트 응답, Docker 컨테이너 상태,
+                      GPU VRAM, RAM, 디스크, 서버 IP 한눈에 출력
+
+  표시 항목:
+    모드      현재 OCR/CLI 선택 + 포트 응답 여부
+    Docker    pro, cli-llm, engine-ai, api-ai, front-ocr, mask-ocr
+    GPU VRAM  사용량 / 전체 (nvidia-smi)
+    RAM       사용 / 전체 (free -h)
+    디스크    사용률 (df -h /)
+    서버 IP   hostname -I""",
+
+    "rescan": """\
+/rescan — vLLM 서버 재탐색 + 재선택
+  /rescan             localhost 포트 목록 재탐색 후 서버·모델 재선택
+  /rescan --subnet    서브넷 /24 포함 LAN 전체 탐색 (느림)
+
+  탐색 포트: 8000 8001 8080 8090 8100 8200 8300 8500 8888 11434 5000 7860
+  재탐색 후 client 자동 재연결 (이력 유지)""",
 }
 
 
@@ -366,7 +388,7 @@ def main():
     print(f"  로그: {log_path()}")
     if _READLINE_OK:
         print("  ↑↓ 이력 탐색 활성화")
-    print("/file /server /sys /syscheck /model /switch /rescan /clear /notool /q  (Ctrl+D 종료)\n")
+    print("/file /server /sys /syscheck /model /switch /status /rescan /clear /notool /q  (Ctrl+D 종료)\n")
 
     while True:
         try:
@@ -399,6 +421,12 @@ def main():
         if ui.startswith("/rescan"):
             _rescan(client, subnet="--subnet" in ui)
             sm.host, sm.port = client.host, client.port
+            continue
+
+        if ui in ("/status", "/st"):
+            script = Path(__file__).parent / "status.py"
+            from core.system import shell_exec as _sh
+            print(_sh(f"python3 {script}", timeout=15))
             continue
 
         if ui.startswith("/switch"):

@@ -3,6 +3,10 @@ __pycache__/
 *.pyc
 *.pyo
 
+# 환경 설정 (민감 정보)
+.env.local
+.env
+
 # macOS 메타데이터
 ._*
 .DS_Store

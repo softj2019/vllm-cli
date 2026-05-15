@@ -14,7 +14,8 @@ DEFAULT_CFG: dict = {
         "container": "pro",
         "host": "localhost",
         "port": 8100,
-        "model": "prov"
+        "model": "prov",
+        "compose_dir": "/home/archiv/ai"
     },
     "cli": {
         "container": "cli-llm",
@@ -72,8 +73,11 @@ class SwitchManager:
         )
         return container in out
 
-    # ── 컨테이너 중지 ────────────────────────────
-    def _stop(self, container: str) -> str:
+    # ── 컨테이너 중지 (GPU 전환용) ───────────────
+    def _stop(self, cfg: dict) -> str:
+        container = cfg.get("container", "")
+        if not container:
+            return "  [중지] 컨테이너 미설정"
         if not self._is_running(container):
             return f"  [{container}] 이미 중지됨"
         print(f"  [{container}] 중지 중...", end="", flush=True)
@@ -81,22 +85,76 @@ class SwitchManager:
         if code == 0:
             print(" 완료")
             return f"  [{container}] 중지 완료"
-        print(f" 실패")
+        print(" 실패")
         return f"  [{container}] 중지 실패: {out[:100]}"
 
-    # ── OCR 컨테이너 시작 (docker start) ─────────
+    # ── compose 전체 종료 (OCR 전체 스택) ────────
+    def compose_down(self) -> str:
+        """docker compose down — front-ocr/mask-ocr/api-ai/engine-ai 전체 종료"""
+        import os
+        compose_dir = self.cfg.get("ocr", {}).get("compose_dir", "")
+        if not compose_dir:
+            return "[오류] switch.json 의 ocr.compose_dir 미설정"
+        patterns = [
+            os.path.join(compose_dir, "docker-compose.yml"),
+            os.path.join(compose_dir, "docker-compose.yaml"),
+            os.path.join(compose_dir, "docker-compose-online.yml"),
+        ]
+        compose_file = next((p for p in patterns if os.path.isfile(p)), None)
+        cmd = (["docker", "compose", "-f", compose_file, "down"]
+               if compose_file else
+               ["docker", "compose", "--project-directory", compose_dir, "down"])
+        print(f"  [compose down] ...", end="", flush=True)
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            if r.returncode == 0:
+                print(" 완료")
+                return "  compose down 완료"
+            print(" 실패")
+            return f"  compose down 실패: {(r.stdout+r.stderr).strip()[:200]}"
+        except Exception as e:
+            print(" 오류")
+            return f"  compose down 오류: {e}"
+
+    # ── OCR 컨테이너 시작 ─────────────────────────
     def _start_ocr(self, cfg: dict) -> str:
         container = cfg["container"]
         if self._is_running(container):
             return f"  [{container}] 이미 실행 중"
-        print(f"  [{container}] 시작 중...", end="", flush=True)
-        code, out = self._docker("start", container)
-        if code == 0:
-            print(" 완료")
-            time.sleep(3)
-            return f"  [{container}] 시작 완료 → {cfg['host']}:{cfg['port']}"
-        print(" 실패")
-        return f"  [{container}] 시작 실패: {out[:100]}\n  수동: docker start {container}"
+
+        # 중지된 컨테이너 재시작
+        if self._container_exists(container):
+            print(f"  [{container}] 시작 중...", end="", flush=True)
+            code, out = self._docker("start", container)
+            if code == 0:
+                print(" 완료")
+                time.sleep(3)
+                return f"  [{container}] 시작 완료 → {cfg['host']}:{cfg['port']}"
+            print(" 실패")
+            return f"  [{container}] 시작 실패: {out[:100]}\n  수동: docker start {container}"
+
+        # 컨테이너 없음 → start_cmd 로 재생성
+        start_cmd = cfg.get("start_cmd", "")
+        if start_cmd:
+            print(f"  [{container}] 재생성 중...", end="", flush=True)
+            try:
+                r = subprocess.run(start_cmd, shell=True, capture_output=True,
+                                   text=True, timeout=120)
+                if r.returncode == 0:
+                    print(" 완료")
+                    time.sleep(5)
+                    return f"  [{container}] 재생성 완료 → {cfg['host']}:{cfg['port']}"
+                print(" 실패")
+                return f"  [{container}] 재생성 실패: {(r.stdout+r.stderr).strip()[:150]}"
+            except Exception as e:
+                print(" 오류")
+                return f"  [{container}] 재생성 오류: {e}"
+
+        return (
+            f"  [{container}] 컨테이너 없음\n"
+            f"  switch.json 의 ocr.start_cmd 에 docker run 명령을 설정하거나\n"
+            f"  수동으로 실행: docker run -d --name {container} ..."
+        )
 
     # ── CLI LLM 컨테이너 시작 ─────────────────────
     def _start_cli(self, cfg: dict) -> str:
@@ -200,7 +258,7 @@ class SwitchManager:
         lines    = [f"=== {current.upper()} → {target.upper()} 모드 전환 ===", ""]
 
         # 현재 모드 컨테이너 중지
-        lines.append(self._stop(from_cfg["container"]))
+        lines.append(self._stop(from_cfg))
         time.sleep(2)
 
         # 대상 모드 컨테이너 시작

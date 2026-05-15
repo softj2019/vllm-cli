@@ -1,0 +1,19 @@
+# LocalAI model registry (offline)
+# Replace file names with actual local model assets.
+
+- name: qwen3-8b-instruct
+  backend: llama-cpp
+  parameters:
+    model: qwen3-8b-instruct-q4_k_m.gguf
+    temperature: 0.2
+    top_p: 0.9
+    top_k: 40
+    context_size: 8192
+
+- name: ocr-chat-fast
+  backend: llama-cpp
+  parameters:
+    model: qwen2.5-7b-instruct-q4_k_m.gguf
+    temperature: 0.1
+    top_p: 0.9
+    context_size: 8192

@@ -1,0 +1,164 @@
+archiv@archiv:/media/archiv/B3E8-304F/home/ai/cli$ === 권장 재시작 명령 ===
+python3 -m vllm.entrypoints.openai.api_server \
+  --model prov \
+  --host localhost \
+  --port 8100 \
+  --enable-auto-tool-choice \
+  --tool-call-parser hermes
+===: command not found
+/usr/bin/python3: Error while finding module specification for 'vllm.entrypoints.openai.api_server' (ModuleNotFoundError: No module named 'vllm')
+
+
+
+━━━ vLLM CLI v2  localhost:8100  model=prov  tools=ON ━━━
+  로그: /media/archiv/B3E8-304F/home/ai/cli/logs/vllm_cli.log
+  ↑↓ 이력 탐색 활성화
+/file /server /sys /syscheck /rescan /clear /notool /q  (Ctrl+D 종료)
+
+User > /syscheck
+User > 
+User > /syscheck
+환경 조사 중...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ vLLM 개발 환경 조사 리포트
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[ OS / 시스템 ]
+  OS      : Ubuntu 24.04.4 LTS
+  커널    : 6.17.0-14-generic  (x86_64)
+  호스트  : archiv
+  Python  : 3.12.3
+
+[ CPU ]
+  모델    : Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz
+  코어    : 12 (아키텍처: x86_64)
+
+[ RAM ]
+  전체    : 31.3GB  사용: 8GB  여유: 0GB  (26%)
+
+[ Disk (/) ]
+  전체: 915G  사용: 327G  여유: 543G  (38%)
+
+[ GPU ]
+  [0] NVIDIA GeForce RTX 5090
+       VRAM: 31.8GB  여유: 2.9GB  드라이버: 580.126.09  Compute: 12.0
+  ─ 합계 VRAM: 31.8GB
+
+[ CUDA ]
+  CUDA (드라이버) : 13.0
+  CUDA (nvcc)     : 12.6
+  cuDNN           : unknown
+
+[ Python 환경 ]
+  실행 경로  : /usr/bin/python3
+  가상환경   : 없음
+  패키지 현황:
+    ✗ vllm                 미설치
+    ✗ torch                미설치
+    ✗ transformers         미설치
+    ✗ accelerate           미설치
+    ✗ paddlepaddle         미설치
+    ✗ paddleocr            미설치
+    ✗ fastapi              미설치
+    ✗ uvicorn              미설치
+
+[ 발견된 모델 경로 ]
+     40G  /home/archiv/dev/model/ARCH_OCR_PRO
+    9.5M  /home/archiv/dev/model/PP-OCRv5_mobile_det
+    169M  /home/archiv/dev/model/PP-OCRv5_server_det
+     27M  /home/archiv/dev/model/korean_PP-OCRv5_mobile_rec
+     40G  /home/archiv/dev/model/ARCH_OCR_PRO
+    9.5M  /home/archiv/dev/model/PP-OCRv5_mobile_det
+    169M  /home/archiv/dev/model/PP-OCRv5_server_det
+     27M  /home/archiv/dev/model/korean_PP-OCRv5_mobile_rec
+
+[ 네트워크 ]
+  IP        : 192.168.215.184, 172.17.0.1, 172.18.0.1
+  vLLM 포트 : 8000, 8100
+
+[ Docker ]
+  설치: ✓ 29.3.0,
+  실행 중 컨테이너:
+    mask-ocr
+front-ocr
+api-ai
+engine-ai
+pro
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ [ vLLM 모델 추천 — Tool Calling 지원 ]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✓ 현재 환경에서 실행 가능:
+
+  [ 15GB] Qwen2.5-14B-Instruct
+         ID     : Qwen/Qwen2.5-14B-Instruct
+         parser : hermes
+         이유   : 균형잡힌 성능, Tool Calling 지원
+         실행   : python3 -m vllm.entrypoints.openai.api_server \
+                    --model Qwen/Qwen2.5-14B-Instruct \
+                    --port 8200 \
+                    --enable-auto-tool-choice --tool-call-parser hermes
+
+  [  8GB] Llama-3.1-8B-Instruct (멀티GPU)
+         ID     : meta-llama/Llama-3.1-8B-Instruct
+         parser : llama3
+         이유   : 경량 고성능
+         실행   : python3 -m vllm.entrypoints.openai.api_server \
+                    --model meta-llama/Llama-3.1-8B-Instruct \
+                    --port 8200 \
+                    --enable-auto-tool-choice --tool-call-parser llama3
+
+  [  8GB] Qwen2.5-7B-Instruct
+         ID     : Qwen/Qwen2.5-7B-Instruct
+         parser : hermes
+         이유   : 7B 최고수준 Tool Calling
+         실행   : python3 -m vllm.entrypoints.openai.api_server \
+                    --model Qwen/Qwen2.5-7B-Instruct \
+                    --port 8200 \
+                    --enable-auto-tool-choice --tool-call-parser hermes
+
+  [  8GB] Llama-3.1-8B-Instruct
+         ID     : meta-llama/Llama-3.1-8B-Instruct
+         parser : llama3
+         이유   : Tool Calling 검증 모델
+         실행   : python3 -m vllm.entrypoints.openai.api_server \
+                    --model meta-llama/Llama-3.1-8B-Instruct \
+                    --port 8200 \
+                    --enable-auto-tool-choice --tool-call-parser llama3
+
+  [  8GB] DeepSeek-R1-Distill-Qwen-7B
+         ID     : deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+         parser : hermes
+         이유   : 추론 특화 (tool call 미지원, 분석용)
+         실행   : python3 -m vllm.entrypoints.openai.api_server \
+                    --model deepseek-ai/DeepSeek-R1-Distill-Qwen-7B \
+                    --port 8200 \
+                    --enable-auto-tool-choice --tool-call-parser hermes
+
+  [  4GB] Qwen2.5-3B-Instruct
+         ID     : Qwen/Qwen2.5-3B-Instruct
+         parser : hermes
+         이유   : 경량 — Tool Calling 가능
+         실행   : python3 -m vllm.entrypoints.openai.api_server \
+                    --model Qwen/Qwen2.5-3B-Instruct \
+                    --port 8200 \
+                    --enable-auto-tool-choice --tool-call-parser hermes
+
+  [  2GB] Qwen2.5-1.5B-Instruct
+         ID     : Qwen/Qwen2.5-1.5B-Instruct
+         parser : hermes
+         이유   : 초경량 — 폐쇄망 최소 사양
+         실행   : python3 -m vllm.entrypoints.openai.api_server \
+                    --model Qwen/Qwen2.5-1.5B-Instruct \
+                    --port 8200 \
+                    --enable-auto-tool-choice --tool-call-parser hermes
+
+
+
+archiv@archiv:/media/archiv/B3E8-304F/home/ai/cli$ python3 -m vllm.entrypoints.openai.api_server \
+                    --model Qwen/Qwen2.5-1.5B-Instruct \
+                    --port 8200 \
+                    --enable-auto-tool-choice --tool-call-parser hermes
+/usr/bin/python3: Error while finding module specification for 'vllm.entrypoints.openai.api_server' (ModuleNotFoundError: No module named 'vllm')
